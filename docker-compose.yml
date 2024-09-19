@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  php:
+    build:
+      context: ./docker
+      args:
+        - VERSION=8.0.30
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php-additional.ini:/usr/local/etc/php/conf.d/additional.ini
+      - ./docker/fpm-additional.conf:/usr/local/etc/php-fpm.d/additional.conf
+    environment:
+      - LANG=C.UTF-8
+      - COMPOSER_PROCESS_TIMEOUT=10000
+
+networks:
+  testing:

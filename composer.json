@@ -1,0 +1,14 @@
+{
+  "name": "any-chat-manager/supports",
+  "description": "A PHP library to generate and validate JWT tokens",
+  "type": "library",
+  "autoload": {
+    "psr-4": {
+      "AnyChat\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=8.0",
+    "guzzlehttp/guzzle": "^7.8"
+  }
+}
