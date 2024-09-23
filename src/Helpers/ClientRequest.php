@@ -12,7 +12,7 @@ class ClientRequest
     protected $client;
     protected \AnyChat\Client $clientMessage;
 
-    private string $messageHost = 'https://8b7e-2402-800-61ca-7bdb-31cd-19a5-7c0d-146d.ngrok-free.app';
+    private string $messageHost = 'https://any-chat-service.com';
 
     public function __construct(\AnyChat\Client $client)
     {
