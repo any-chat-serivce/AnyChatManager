@@ -3,8 +3,6 @@
 namespace AnyChat\Helpers;
 
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Exception\RequestException;
 
 class ClientRequest
 {
@@ -12,7 +10,7 @@ class ClientRequest
     protected $client;
     protected \AnyChat\Client $clientMessage;
 
-    private string $messageHost = 'https://any-chat-service.com';
+    private string $messageHost = 'https://msg-bussiness.tabtab.me';
 
     public function __construct(\AnyChat\Client $client)
     {
@@ -34,53 +32,36 @@ class ClientRequest
             $options = [
                 'headers' => array_merge([
                     'Accept' => 'application/json',
-                    'Authorization' => $this->clientMessage->getAccessToken()
+                    'Authorization' => 'Bearer ' . $this->clientMessage->getAccessToken()
                 ], $headers),
                 'timeout' => $this->timeout,
             ];
 
-            // with files
-            if (!empty($data['files'])) {
-                $options['multipart'] = [];
-                foreach ($data['files'] as $key => $filePath) {
-                    $options['multipart'][] = [
-                        'name' => $key,
-                        'contents' => fopen($filePath, 'r'),
-                        'filename' => basename($filePath)
-                    ];
-                }
-
-                unset($data['files']);
-            }
-
             // json data
             if (!empty($data)) {
-                if (!isset($options['multipart'])) {
-                    // with JSON
-                    $options['json'] = $data;
-                } else {
-                    // with other data multipart
-                    foreach ($data as $key => $value) {
-                        $options['multipart'][] = [
-                            'name' => $key,
-                            'contents' => $value
-                        ];
-                    }
-                }
+                $options['json'] = $data;
             }
 
             // sent request
             $response = $this->client->request($method, $this->messageHost . $uri, $options);
+            $statusCode = $response->getStatusCode();
+            $isSuccess = true;
+            if ($statusCode < 200 || $statusCode >= 400) {
+                $isSuccess = false;
+            }
+
 
             return [
-                'status' => $response->getStatusCode(),
-                'body' => json_decode($response->getBody()),
+                'is_success' => $isSuccess,
+                'status' => $statusCode,
+                'data' => json_decode($response->getBody()),
             ];
 
         } catch (\Throwable $e) {
             return [
+                'is_success' => false,
                 'status' => $e->getCode(),
-                'error' => $e->getMessage()
+                'data' => $e->getMessage()
             ];
         }
     }

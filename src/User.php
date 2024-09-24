@@ -5,13 +5,18 @@ namespace AnyChat;
 use AnyChat\Helpers\ClientRequest;
 use AnyChat\Interfaces\UserInterface;
 use Exception;
-use GuzzleHttp\Exception\GuzzleException;
 
 class User implements UserInterface
 {
     private Client $client;
     private $clientRequest;
-    protected $fields = [];
+    public string|null $id;
+    public string|null $email;
+    public string|null $phone;
+    public string|null $avatar;
+    public string|null $fullName;
+    public string|null $gender;
+
     const TYPE_GENDER_MALE = 'MALE';
     const TYPE_GENDER_FEMALE = 'FEMALE';
     const TYPE_GENDER_OTHER = 'OTHER';
@@ -24,25 +29,7 @@ class User implements UserInterface
 
     public function __construct(array $data = [])
     {
-        $this->fields = $data;
-    }
-
-    public function __get($name)
-    {
-        if (array_key_exists($name, $this->fields)) {
-            return $this->fields[$name];
-        }
-
-        return null;
-    }
-
-    public function __set($name, $value)
-    {
-        $this->fields[$name] = $value;
-    }
-
-    public function __isset($name) {
-        return isset($this->fields[$name]) && $this->fields[$name] !== null;
+        $this->setData($data);
     }
 
     public static function getListGender(): array
@@ -57,17 +44,24 @@ class User implements UserInterface
     public function upsertUser(): static
     {
         $this->setupClientRequest();
-        if (!$this->_id) {
+        if (!$this->id) {
             $response = $this->create();
         } else {
             $response = $this->update();
         }
 
-        if ($response['status'] < 200 && $response['status'] >= 400) {
-            throw new Exception('Update or create user failed');
+        if (!$response['is_success']) {
+            throw new Exception('Get user failed. Status: ' . $response['status'] . ' Error: ' . json_encode($response['data']));
         }
 
-        $this->fields = json_decode(json_encode($response['body'] ?? []), true);
+        $data = json_decode(json_encode($response['data'] ?? []), true);
+        $id = $data['_id'] ?? null;
+        if (empty($id)) {
+            throw new Exception('User not found');
+        }
+
+        $data['id'] = $id;
+        $this->setData($data);
 
         return $this;
     }
@@ -79,17 +73,24 @@ class User implements UserInterface
     public function syncOrCreateUser(): static
     {
         $this->setupClientRequest();
-        if (!$this->_id) {
+        if (!$this->id) {
             $response = $this->create();
         } else {
             $response = $this->detail();
         }
 
-        if ($response['status'] < 200 && $response['status'] >= 400) {
-            throw new Exception('Syncing user failed');
+        if (!$response['is_success']) {
+            throw new Exception('Get user failed. Status: ' . $response['status'] . ' Error: ' . json_encode($response['data']));
         }
 
-        $this->fields = json_decode(json_encode($response['body'] ?? []), true);
+        $data = json_decode(json_encode($response['data'] ?? []), true);
+        $id = $data['_id'] ?? null;
+        if (empty($id)) {
+            throw new Exception('User not found');
+        }
+
+        $data['id'] = $id;
+        $this->setData($data);
 
         return $this;
     }
@@ -104,7 +105,7 @@ class User implements UserInterface
             'email' => $this->email,
             'phone' => $this->phone,
             'avatar' => $this->avatar,
-            'full_name' => $this->full_name,
+            'full_name' => $this->fullName,
             'gender' => $this->gender
         ];
 
@@ -121,11 +122,11 @@ class User implements UserInterface
             'email' => $this->email,
             'phone' => $this->phone,
             'avatar' => $this->avatar,
-            'full_name' => $this->full_name,
+            'full_name' => $this->fullName,
             'gender' => $this->gender
         ];
 
-        return $this->clientRequest->sent("/api/user/$this->_id", 'PUT', $dataUpdate);
+        return $this->clientRequest->sent("/api/user/$this->id", 'PUT', $dataUpdate);
     }
 
     /**
@@ -133,7 +134,7 @@ class User implements UserInterface
      */
     private function detail(): array
     {
-        return $this->clientRequest->sent("/api/user/$this->_id");
+        return $this->clientRequest->sent("/api/user/$this->id");
     }
 
     /**
@@ -144,12 +145,12 @@ class User implements UserInterface
     public function delete(): mixed
     {
         $this->setupClientRequest();
-        $response = $this->clientRequest->sent("/api/user/$this->_id", 'DELETE');
-        if ($response['status'] < 200 && $response['status'] >= 400) {
-            throw new Exception('Delete user failed');
+        $response = $this->clientRequest->sent("/api/user/$this->id", 'DELETE');
+        if (!$response['is_success']) {
+            throw new Exception('Get user failed. Status: ' . $response['status'] . ' Error: ' . json_encode($response['data']));
         }
 
-        return $response['body'] ?? [];
+        return $response['data'] ?? [];
     }
 
     /**
@@ -157,18 +158,26 @@ class User implements UserInterface
      * @param $clientId
      * @param $clientSecret
      * @return array
+     * @throws Exception
      */
     public static function getAllUsers($clientId, $clientSecret): array
     {
         $client = new Client($clientId, $clientSecret);
         $clientRequest = new ClientRequest($client);
-
         $response = $clientRequest->sent('/api/user');
-        if ($response['status'] < 200 && $response['status'] >= 400) {
-            throw new Exception('Delete user failed');
+        if (!$response['is_success']) {
+            throw new Exception('Get user failed. Status: ' . $response['status'] . ' Error: ' . json_encode($response['data']));
         }
 
-        return $response['body'] ?? [];
+        $data =  $response['data'] ?? [];
+        $users = [];
+        foreach ($data as $user) {
+            $user->id = $user->_id;
+            $userCustom = json_decode(json_encode($user), true);
+            $users[] = (new User($userCustom))->getData();
+        }
+
+        return $users;
     }
 
     public function setClient($clientId, $clientSecret): static
@@ -192,6 +201,46 @@ class User implements UserInterface
 
     public function getAttributes(): array
     {
-        return $this->fields;
+        return $this->getData();
+    }
+
+    /**
+     * Get token for user with config with follow client
+     * @throws Exception
+     */
+    public function getToken(): string
+    {
+        if (empty($this->client)) {
+            throw new Exception('Have to setup client first !');
+        }
+
+        $this->client->setOptions( [
+            'id' => $this->id,
+            'full_name' => $this->fullName,
+        ]);
+
+        return $this->client->getAccessToken();
+    }
+
+    private function setData(array $data): void
+    {
+        $this->id = $data['id'] ?? null;
+        $this->email = $data['email'] ?? null;
+        $this->phone = $data['phone'] ?? null;
+        $this->avatar = $data['avatar'] ?? null;
+        $this->fullName = $data['full_name'] ?? null;
+        $this->gender = $data['gender'] ?? null;
+    }
+
+    private function getData(): array
+    {
+        return [
+            'id' => $this->id,
+            'email' => $this->email,
+            'phone' => $this->phone,
+            'avatar' => $this->avatar,
+            'full_name' => $this->fullName,
+            'gender' => $this->gender,
+        ];
     }
 }
