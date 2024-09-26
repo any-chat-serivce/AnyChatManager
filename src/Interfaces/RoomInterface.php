@@ -20,4 +20,16 @@ interface RoomInterface
     public function addUsers(array $userInputs): static;
 
     public function addUser(array $userInput, $canAdd = true, $canView = true, $canDelete = true, $canEdit = true): static;
+
+    public function id(): ?string;
+
+    public function avatar(): ?string;
+
+    public function name(): ?string;
+
+    public function expiredTime(): ?string;
+
+    public function getDescription();
+
+    public function getDescriptionConfig();
 }
