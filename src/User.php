@@ -134,6 +134,10 @@ class User implements UserInterface
      */
     private function detail(): array
     {
+        if (empty($this->id)) {
+            throw new Exception('User id is required');
+        }
+
         return $this->clientRequest->sent("/api/user/$this->id");
     }
 
@@ -144,10 +148,14 @@ class User implements UserInterface
      */
     public function delete(): mixed
     {
+        if (empty($this->id)) {
+            throw new Exception('User id is required');
+        }
+
         $this->setupClientRequest();
         $response = $this->clientRequest->sent("/api/user/$this->id", 'DELETE');
         if (!$response['is_success']) {
-            throw new Exception('Get user failed. Status: ' . $response['status'] . ' Error: ' . json_encode($response['data']));
+            throw new Exception('Delete user failed. Status: ' . $response['status'] . ' Error: ' . json_encode($response['data']));
         }
 
         return $response['data'] ?? [];
