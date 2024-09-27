@@ -223,7 +223,7 @@ class User implements UserInterface
         }
 
         $this->client->setOptions( [
-            'id' => $this->id,
+            'user_id' => $this->id,
             'full_name' => $this->fullName,
         ]);
 

@@ -10,6 +10,7 @@ class Room implements RoomInterface
 {
     public string|null $id;
     public string|null $name;
+    public string|null $title;
     public string|null $avatar;
     public string|null $expiredTime;
     public mixed $descriptionConfig = null;
@@ -36,6 +37,7 @@ class Room implements RoomInterface
     {
         $this->id = $data['id'] ?? null;
         $this->name = $data['name'] ?? null;
+        $this->title = $data['title'] ?? null;
         $this->expiredTime = $data['expired_time'] ?? null;
         $this->avatar = $data['avatar'] ?? null;
         $this->description = $data['description'] ?? null;
@@ -72,7 +74,8 @@ class Room implements RoomInterface
         } else {
             // update older users
             $existedIndex = array_key_first($existed);
-            $this->users[$existedIndex] = $userInput;
+            $olderUser = reset($existed);
+            $this->users[$existedIndex] = array_merge($olderUser, $userInput);
         }
 
         return $this;
@@ -112,6 +115,31 @@ class Room implements RoomInterface
     }
 
     /**
+     * Get list rooms
+     * @param $clientId
+     * @param $clientSecret
+     * @return array
+     * @throws Exception
+     */
+    public static function getLastRoomNewMessage($clientId, $clientSecret, array $params): array
+    {
+        $client = new Client($clientId, $clientSecret);
+        $clientRequest = new ClientRequest($client);
+        $usrlParameters = '';
+        foreach ($params as $key => $value)
+        {
+            $usrlParameters = $usrlParameters . '&' . $key . '=' . $value;
+        }
+
+        $response = $clientRequest->sent('/api/room/list-rooms?' . $usrlParameters);
+        if (!$response['is_success']) {
+            throw new Exception('Get list room failed. Status: ' . $response['status'] . ' Error: ' . json_encode($response['data']));
+        }
+
+        return $response['data'] ?? [];
+    }
+
+    /**
      * Get all attributes
      * @return array
      */
@@ -120,6 +148,7 @@ class Room implements RoomInterface
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'title' => $this->title,
             'avatar' => $this->avatar,
             'expired_time' => $this->expiredTime,
             'description' => $this->description,
@@ -206,6 +235,7 @@ class Room implements RoomInterface
         $dataCreate = [
             'user_ids' => $userIds,
             'name' => $this->name,
+            'title' => $this->title,
             'avatar' => $this->avatar,
             'expired_time' => $this->expiredTime,
             'description' => $this->descriptionConfig,
@@ -224,6 +254,7 @@ class Room implements RoomInterface
         $dataUpdate = [
             'user_ids' => $userIds,
             'name' => $this->name,
+            'title' => $this->title,
             'avatar' => $this->avatar,
             'expired_time' => $this->expiredTime,
             'description' => $this->descriptionConfig,
@@ -235,17 +266,27 @@ class Room implements RoomInterface
 
     /**
      * Custom id in users
-     * @param array $roomCustom
+     * @param array $room
      * @return void
      */
-    private function customUsersInRoom(array &$roomCustom): void
+    private function customUsersInRoom(array &$room): void
     {
         $userIds = [];
-        foreach ($roomCustom['user_ids'] as $user) {
-            $user['id'] = $user['_id'] ?? null;
+        foreach ($room['user_ids'] as $item) {
+            if (!isset($item['id']) && !isset($item['_id'])) {
+                $user['id'] = $item;
+            } else {
+                if (isset($item['_id'])) {
+                    $item['id'] = $item['_id'];
+                }
+
+                $user = $item;
+            }
+
             $userIds[] = $user;
         }
-        $roomCustom['users'] = $userIds;
+
+        $room['users'] = $userIds;
     }
 
     /**
@@ -325,6 +366,11 @@ class Room implements RoomInterface
     public function name(): ?string
     {
         return $this->name;
+    }
+
+    public function title(): ?string
+    {
+        return $this->title;
     }
 
     public function expiredTime(): ?string
