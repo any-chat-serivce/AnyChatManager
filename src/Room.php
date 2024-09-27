@@ -121,11 +121,17 @@ class Room implements RoomInterface
      * @return array
      * @throws Exception
      */
-    public static function getLastRoomNewMessage($clientId, $clientSecret, $userID): array
+    public static function getLastRoomNewMessage($clientId, $clientSecret, array $params): array
     {
         $client = new Client($clientId, $clientSecret);
         $clientRequest = new ClientRequest($client);
-        $response = $clientRequest->sent('/api/room/list-rooms?user_id=' . $userID);
+        $usrlParameters = '';
+        foreach ($params as $key => $value)
+        {
+            $usrlParameters = $usrlParameters . '&' . $key . '=' . $value;
+        }
+
+        $response = $clientRequest->sent('/api/room/list-rooms?' . $usrlParameters);
         if (!$response['is_success']) {
             throw new Exception('Get list room failed. Status: ' . $response['status'] . ' Error: ' . json_encode($response['data']));
         }
@@ -459,8 +465,10 @@ class Room implements RoomInterface
             $canDelete = $user['can_delete'] ?? true;
             $canEdit = $user['can_edit'] ?? true;
 
-            return (new UserRoom($this->clientId, $this->clientSecret, $this->id))
+            $permission = (new UserRoom($this->clientId, $this->clientSecret, $this->id))
                 ->setUser($user['id'], $canAdd, $canView, $canDelete, $canEdit);
+
+            return $permission;
         }
 
         return null;
