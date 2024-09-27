@@ -72,7 +72,8 @@ class Room implements RoomInterface
         } else {
             // update older users
             $existedIndex = array_key_first($existed);
-            $this->users[$existedIndex] = $userInput;
+            $olderUser = reset($existed);
+            $this->users[$existedIndex] = array_merge($olderUser, $userInput);
         }
 
         return $this;
@@ -109,6 +110,25 @@ class Room implements RoomInterface
         }
 
         return $rooms;
+    }
+
+    /**
+     * Get list rooms
+     * @param $clientId
+     * @param $clientSecret
+     * @return array
+     * @throws Exception
+     */
+    public static function getLastRoomNewMessage($clientId, $clientSecret, $userID): array
+    {
+        $client = new Client($clientId, $clientSecret);
+        $clientRequest = new ClientRequest($client);
+        $response = $clientRequest->sent('/api/room/list-rooms?user_id=' . $userID);
+        if (!$response['is_success']) {
+            throw new Exception('Get list room failed. Status: ' . $response['status'] . ' Error: ' . json_encode($response['data']));
+        }
+
+        return $response['data'] ?? [];
     }
 
     /**
@@ -235,17 +255,27 @@ class Room implements RoomInterface
 
     /**
      * Custom id in users
-     * @param array $roomCustom
+     * @param array $room
      * @return void
      */
-    private function customUsersInRoom(array &$roomCustom): void
+    private function customUsersInRoom(array &$room): void
     {
         $userIds = [];
-        foreach ($roomCustom['user_ids'] as $user) {
-            $user['id'] = $user['_id'] ?? null;
+        foreach ($room['user_ids'] as $item) {
+            if (!isset($item['id']) && !isset($item['_id'])) {
+                $user['id'] = $item;
+            } else {
+                if (isset($item['_id'])) {
+                    $item['id'] = $item['_id'];
+                }
+
+                $user = $item;
+            }
+
             $userIds[] = $user;
         }
-        $roomCustom['users'] = $userIds;
+
+        $room['users'] = $userIds;
     }
 
     /**
