@@ -10,6 +10,7 @@ class Room implements RoomInterface
 {
     public string|null $id;
     public string|null $name;
+    public string|null $title;
     public string|null $avatar;
     public string|null $expiredTime;
     public mixed $descriptionConfig = null;
@@ -36,6 +37,7 @@ class Room implements RoomInterface
     {
         $this->id = $data['id'] ?? null;
         $this->name = $data['name'] ?? null;
+        $this->title = $data['title'] ?? null;
         $this->expiredTime = $data['expired_time'] ?? null;
         $this->avatar = $data['avatar'] ?? null;
         $this->description = $data['description'] ?? null;
@@ -140,6 +142,7 @@ class Room implements RoomInterface
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'title' => $this->title,
             'avatar' => $this->avatar,
             'expired_time' => $this->expiredTime,
             'description' => $this->description,
@@ -226,6 +229,7 @@ class Room implements RoomInterface
         $dataCreate = [
             'user_ids' => $userIds,
             'name' => $this->name,
+            'title' => $this->title,
             'avatar' => $this->avatar,
             'expired_time' => $this->expiredTime,
             'description' => $this->descriptionConfig,
@@ -244,6 +248,7 @@ class Room implements RoomInterface
         $dataUpdate = [
             'user_ids' => $userIds,
             'name' => $this->name,
+            'title' => $this->title,
             'avatar' => $this->avatar,
             'expired_time' => $this->expiredTime,
             'description' => $this->descriptionConfig,
@@ -355,6 +360,11 @@ class Room implements RoomInterface
     public function name(): ?string
     {
         return $this->name;
+    }
+
+    public function title(): ?string
+    {
+        return $this->title;
     }
 
     public function expiredTime(): ?string
