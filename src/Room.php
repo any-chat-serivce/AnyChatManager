@@ -465,10 +465,8 @@ class Room implements RoomInterface
             $canDelete = $user['can_delete'] ?? true;
             $canEdit = $user['can_edit'] ?? true;
 
-            $permission = (new UserRoom($this->clientId, $this->clientSecret, $this->id))
+            return (new UserRoom($this->clientId, $this->clientSecret, $this->id))
                 ->setUser($user['id'], $canAdd, $canView, $canDelete, $canEdit);
-
-            return $permission;
         }
 
         return null;
