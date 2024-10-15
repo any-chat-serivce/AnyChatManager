@@ -8,3 +8,4 @@ composer require any-chat-manager/supports
 ```
 
 follow `test.php` for usage
+
