@@ -16,6 +16,7 @@ class User implements UserInterface
     public string|null $avatar;
     public string|null $fullName;
     public string|null $gender;
+    public string|null $description;
 
     const TYPE_GENDER_MALE = 'MALE';
     const TYPE_GENDER_FEMALE = 'FEMALE';
@@ -106,7 +107,8 @@ class User implements UserInterface
             'phone' => $this->phone,
             'avatar' => $this->avatar,
             'full_name' => $this->fullName,
-            'gender' => $this->gender
+            'gender' => $this->gender,
+            'description' => $this->description,
         ];
 
         return $this->clientRequest->sent('/api/user', 'POST', $dataCreate);
@@ -123,7 +125,8 @@ class User implements UserInterface
             'phone' => $this->phone,
             'avatar' => $this->avatar,
             'full_name' => $this->fullName,
-            'gender' => $this->gender
+            'gender' => $this->gender,
+            'description' => $this->description,
         ];
 
         return $this->clientRequest->sent("/api/user/$this->id", 'PUT', $dataUpdate);
@@ -238,6 +241,7 @@ class User implements UserInterface
         $this->avatar = $data['avatar'] ?? null;
         $this->fullName = $data['full_name'] ?? null;
         $this->gender = $data['gender'] ?? null;
+        $this->description = $data['description'] ?? null;
     }
 
     private function getData(): array
@@ -249,6 +253,7 @@ class User implements UserInterface
             'avatar' => $this->avatar,
             'full_name' => $this->fullName,
             'gender' => $this->gender,
+            'description' => $this->description,
         ];
     }
 }
